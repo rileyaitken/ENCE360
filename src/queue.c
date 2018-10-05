@@ -65,5 +65,12 @@ void *queue_get(Queue *queue) {
 	
 	sem_wait(&queue->get);
 	pthread_mutex_lock(queue->lock);
+	void* item = queue->q[0];
+	for (int i = 1; i < queue->length || queue->q[i] != NULL; i++) {
+		queue->q[i-1] = queue->q[i];
+	}
+	pthread_mutex_unlock(queue->lock);
+	sem_post(&queue->put);
+	return item;
 }
 
