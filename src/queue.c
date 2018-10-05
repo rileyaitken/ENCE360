@@ -15,32 +15,55 @@
         do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 typedef struct QueueStruct {
-
-
+	sem_t get;
+	sem_t put;
+	pthread_mutex_t* lock;
+	void* q[];
+	int length;
 } Queue;
 
 
 Queue *queue_alloc(int size) {
-    assert(0 && "not implemented yet!");
-
+    
+    Queue* queue = malloc(sizeof(Queue));
+    queue->q = malloc(sizeof(void*) * size);
+    for (int i = 0; i < size; i++) {
+		queue->q[i] = NULL;
+	}
+	queue->length = size;
+	sem_init(&queue->get, 0, 0); // Nothing to get from queue
+	sem_init(&queue->put, 0, 1); // Queue is empty, available for adding to
+	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+	queue->lock = &lock;
+    return queue;
 }
 
 void queue_free(Queue *queue) {
-
-    assert(0 && "not implemented yet!");
+	
+	free(queue->q);
+	free(queue);
 }
 
 void queue_put(Queue *queue, void *item) {
-
-    assert(0 && "not implemented yet!");
-
+	
+	sem_wait(&queue->put);
+	pthread_mutex_lock(queue->lock);
+	for (int i = 0; i < queue->length; i++) {
+		if (queue->q[i] == NULL) {
+			queue->q[i] = item;
+			break;
+		}
+	}
+	if (i == queue->length) {
+		printf("Queue is full.");
+	}
+	pthread_mutex_unlock(queue->lock);
+	sem_post(&queue->get);
 }
 
-
-
 void *queue_get(Queue *queue) {
-
-    assert(0 && "not implemented yet!");
-
+	
+	sem_wait(&queue->get);
+	pthread_mutex_lock(queue->lock);
 }
 
