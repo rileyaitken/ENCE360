@@ -17,60 +17,61 @@
 typedef struct QueueStruct {
 	sem_t get;
 	sem_t put;
-	pthread_mutex_t* lock;
-	void* q[];
+	pthread_mutex_t lock;
 	int length;
+	void* q[];
 } Queue;
 
 
 Queue *queue_alloc(int size) {
     
-    Queue* queue = malloc(sizeof(Queue));
-    queue->q = malloc(sizeof(void*) * size);
+    Queue* queue = (Queue*) malloc(sizeof(Queue) + sizeof(void*) * size);
+    
     for (int i = 0; i < size; i++) {
 		queue->q[i] = NULL;
 	}
 	queue->length = size;
-	sem_init(&queue->get, 0, 0); // Nothing to get from queue
-	sem_init(&queue->put, 0, 1); // Queue is empty, available for adding to
+	sem_init(&(queue->get), 0, 0); // Nothing to get from queue
+	sem_init(&(queue->put), 0, 1); // Queue is empty, available for adding to
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-	queue->lock = &lock;
+	queue->lock = lock;
     return queue;
 }
 
 void queue_free(Queue *queue) {
 	
-	free(queue->q);
 	free(queue);
 }
 
 void queue_put(Queue *queue, void *item) {
 	
-	sem_wait(&queue->put);
-	pthread_mutex_lock(queue->lock);
-	for (int i = 0; i < queue->length; i++) {
+	sem_wait(&(queue->put));
+	pthread_mutex_lock(&queue->lock);
+	int i = 0;
+	while (i < queue->length) {
 		if (queue->q[i] == NULL) {
 			queue->q[i] = item;
 			break;
 		}
+		i++;
 	}
 	if (i == queue->length) {
 		printf("Queue is full.");
 	}
-	pthread_mutex_unlock(queue->lock);
-	sem_post(&queue->get);
+	pthread_mutex_unlock(&queue->lock);
+	sem_post(&(queue->get));
 }
 
 void *queue_get(Queue *queue) {
 	
-	sem_wait(&queue->get);
-	pthread_mutex_lock(queue->lock);
+	sem_wait(&(queue->get));
+	pthread_mutex_lock(&queue->lock);
 	void* item = queue->q[0];
 	for (int i = 1; i < queue->length || queue->q[i] != NULL; i++) {
 		queue->q[i-1] = queue->q[i];
 	}
-	pthread_mutex_unlock(queue->lock);
-	sem_post(&queue->put);
+	pthread_mutex_unlock(&queue->lock);
+	sem_post(&(queue->put));
 	return item;
 }
 
