@@ -54,10 +54,11 @@ Buffer* http_query(char *host, char *page, int port) {
 		perror("Error reading from server.");
 		return NULL;
 	}
+	printf("Received %d bytes from %s/%s", num_bytes, host, page);
 	
 	while (num_bytes > 0) {
-		if (num_bytes + response->length > BUF_SIZE) {
-			response->length = response->length + num_bytes;
+		response->length += num_bytes;
+		if (response->length > BUF_SIZE) {
 			response->data = realloc(response->data, response->length);
 		}
 		memcpy(response->data, buffer, num_bytes);
