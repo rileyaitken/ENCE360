@@ -54,7 +54,6 @@ Buffer* http_query(char *host, char *page, int port) {
 		perror("Error reading from server.");
 		return NULL;
 	}
-	printf("Received %d bytes from %s/%s", num_bytes, host, page);
 	
 	while (num_bytes > 0) {
 		response->length += num_bytes;
