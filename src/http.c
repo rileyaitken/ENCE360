@@ -11,31 +11,36 @@
 
 #define BUF_SIZE 1024
 
-
-
 Buffer* http_query(char *host, char *page, int port) {
 	
 	struct addrinfo* server_address = NULL;
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	char port_s[20] = {0};
+	hints.ai_family = AF_INET; // IPv4 connection
+	hints.ai_socktype = SOCK_STREAM; // TCP connection
+	char* port_s = malloc(20);
 	sprintf(port_s, "%d", port);
-	if (getaddrinfo(host, port_s, &hints, &server_address) != 0) {
+	if (getaddrinfo(host, port_s, &hints, &server_address) != 0) { // Use 'hints', 'host' and 'port' to read server info into 'server_address')
 		perror("Error getting the server address info.");
 		return NULL;
 	}
 	
-	int sock = socket(server_address->ai_family, server_address->ai_socktype, server_address->ai_protocol);
+	free(port_s);
 	
+	// Create socket of compatible type to server
+	int sock = socket(server_address->ai_family, server_address->ai_socktype, server_address->ai_protocol); 
+	
+	// Connect to server over TCP
 	if (connect(sock, server_address->ai_addr, server_address->ai_addrlen) == -1) {
 		perror("Error connecting to host.");
 		return NULL;
 	}
 	
+	freeaddrinfo(server_address);
+	
 	Buffer* response = malloc(sizeof(Buffer));
 	response->data = malloc(BUF_SIZE);
+	memset(response->data, '\0', BUF_SIZE);
 	response->length = 0;
 
 	char* request = malloc(BUF_SIZE);
@@ -60,7 +65,7 @@ Buffer* http_query(char *host, char *page, int port) {
 		if (response->length > BUF_SIZE) {
 			response->data = realloc(response->data, response->length);
 		}
-		memcpy(response->data, buffer, num_bytes);
+		memcpy(response->data + response->length - num_bytes, buffer, num_bytes);
 		num_bytes = read(sock, buffer, BUF_SIZE);
 	}
 	
